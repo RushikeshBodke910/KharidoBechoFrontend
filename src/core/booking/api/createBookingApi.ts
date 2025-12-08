@@ -4,6 +4,14 @@ import { Booking, CreateBookingRequest, SendMessageRequest } from '../types/book
 import { EntityType } from '../types/entity.types';
 import { getEndpointConfig } from './endpoints.config';
 
+function getTodayDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, "0");
+  const day = now.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function createBookingApi<TEntity = any>(
   entityType: EntityType
 ): BookingApiAdapter<TEntity> {
@@ -25,12 +33,21 @@ export function createBookingApi<TEntity = any>(
           message: request.message,
         };
       }
+  // LAPTOP BOOKING BLOCK
+      if (entityType === 'laptop') {
+        payload = {
+          laptopId: request.entityId,
+          buyerUserId: request.buyerUserId,
+          message: request.message,
+          bookingDate:getTodayDate(),
+        };
+  }
 
       // Future: Add car, bike, laptop booking payload here
 
       const response = await api.post<any>(endpoints.createBooking, payload);
       return normalizeBooking(response.data, entityType);
-    },
+      },
 
     async getBuyerBookings(buyerId: number): Promise<Booking<TEntity>[]> {
       const response = await api.get<any[]>(endpoints.getBuyerBookings(buyerId));
@@ -120,19 +137,19 @@ export function createBookingApi<TEntity = any>(
 // ========================================
 function normalizeBooking<TEntity>(data: any, entityType: EntityType): Booking<TEntity> {
   return {
-    bookingId: data.bookingId || data.requestId,
+    bookingId: data.bookingId || data.requestId || data.laptopBookingId,
     requestId: data.requestId,
-    entityId: data.mobileId, // Future: Add || data.carId || data.laptopId || data.bikeId
+    entityId: data.mobileId||data.laptopId || data.entityId || data.itemId || null, // Future: Add || data.carId || data.laptopId || data.bikeId
     entityType,
     buyerId: data.buyerId || data.buyerUserId,
     sellerId: data.sellerId || data.sellerUserId,
-    status: data.status || data.bookingStatus,
+    status: data.status || data.bookingStatus|| data.pendingStatus,
     createdAt: data.createdAt || new Date().toISOString(),
     updatedAt: data.updatedAt || null,
-    conversation: data.conversation || [],
+    conversation: data.conversation ||data.messages || data.chatMessages ||data.conversationMessages ||data.messageList || [],
     messageCount: data.messageCount,
     lastMessage: data.lastMessage,
     lastMessageTime: data.lastMessageTime,
-    entityData: data.mobile, // Future: Add || data.car || data.laptop || data.bike
+    entityData: data.mobile || data.laptop||data.entity || data.laptopDetails || null // Future: Add || data.car  || data.bike
   };
 }

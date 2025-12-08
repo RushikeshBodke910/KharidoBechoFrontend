@@ -65,7 +65,7 @@ const BuyerTabNavigator = () => {
         headerShown: false,
         tabBarActiveTintColor: '#0F5E87',   // keep buyer colors
         tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: tabBarBaseStyle,       // 👈 HEIGHT MATCHED
+        tabBarStyle: tabBarBaseStyle,       //  HEIGHT MATCHED
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',

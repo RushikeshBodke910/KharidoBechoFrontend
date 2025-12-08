@@ -14,25 +14,34 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useEntityBookings } from '@core/booking/hooks';
-import { MobileEntity } from '@core/booking/types/entity.types';
+import { MobileEntity, LaptopEntity } from '@core/booking/types/entity.types';
 import BuyerRequestCard from '../components/BuyerRequestCard';
 
 interface RouteParams {
-  mobileId: number;
+  mobileId?: number;
+  laptopId?: number;
   mobileTitle?: string;
+  laptopTitle?: string;
 }
 
 const SellerRequestListScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { mobileId, mobileTitle } = route.params as RouteParams;
+  const { mobileId, laptopId, mobileTitle, laptopTitle } = route.params as RouteParams;
 
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use generic booking hook
-  const { bookings: requests, loading, error, refresh } = useEntityBookings<MobileEntity>({
-    entityType: 'mobile',
-    entityId: mobileId,
+  //  Determine which entity is used
+  const entityType = laptopId ? 'laptop' : 'mobile';
+  const entityId = laptopId || mobileId || 0;
+  const title = laptopTitle || mobileTitle || (laptopId ? `Laptop #${entityId}` : `Mobile #${entityId}`);
+
+  //  Corrected — fetch bookings dynamically (mobile or laptop)
+  const { bookings: requests, loading, error, refresh } = useEntityBookings<
+    LaptopEntity | MobileEntity
+  >({
+    entityType,
+    entityId,
   });
 
   const onRefresh = async () => {
@@ -41,16 +50,18 @@ const SellerRequestListScreen = () => {
     setRefreshing(false);
   };
 
+  //  Navigate to correct chat screen with full params
   const handleRequestPress = (request: any) => {
     navigation.navigate('SellerChatThread' as never, {
       requestId: request.bookingId || request.requestId,
       buyerId: request.buyerId,
-      mobileId: mobileId,
-      mobileTitle: mobileTitle,
+      mobileId,
+      mobileTitle,
+      laptopId,
+      laptopTitle,
     } as never);
   };
 
-  // Render header
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -58,7 +69,7 @@ const SellerRequestListScreen = () => {
       </TouchableOpacity>
 
       <View style={styles.headerInfo}>
-        <Text style={styles.headerTitle}>{mobileTitle || `Mobile #${mobileId}`}</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
         <Text style={styles.headerSubtitle}>
           {requests.length} {requests.length === 1 ? 'Request' : 'Requests'}
         </Text>
@@ -70,7 +81,6 @@ const SellerRequestListScreen = () => {
     </View>
   );
 
-  // Render empty state
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconContainer}>
@@ -78,13 +88,11 @@ const SellerRequestListScreen = () => {
       </View>
       <Text style={styles.emptyTitle}>No requests yet</Text>
       <Text style={styles.emptySubtitle}>
-        When buyers send you chat requests for this mobile,{'\n'}
-        they'll appear here
+        When buyers send chat requests,{'\n'}they'll appear here
       </Text>
     </View>
   );
 
-  // Render error state
   const renderErrorState = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.errorIconContainer}>
@@ -99,7 +107,6 @@ const SellerRequestListScreen = () => {
     </View>
   );
 
-  // Loading state
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -142,6 +149,7 @@ const SellerRequestListScreen = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -155,56 +163,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
     elevation: 2,
   },
-  backButton: {
-    padding: 4,
-    marginRight: 12,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#002F34',
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  headerIconButton: {
-    padding: 4,
-    marginLeft: 12,
-  },
-  listContent: {
-    backgroundColor: '#FFFFFF',
-  },
-  emptyList: {
-    flexGrow: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
+  backButton: { padding: 4, marginRight: 12 },
+  headerInfo: { flex: 1 },
+  headerTitle: { fontSize: 16, fontWeight: '600', color: '#002F34', marginBottom: 2 },
+  headerSubtitle: { fontSize: 12, color: '#6B7280' },
+  headerIconButton: { padding: 4, marginLeft: 12 },
+  listContent: { backgroundColor: '#FFFFFF' },
+  emptyList: { flexGrow: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 16, color: '#6B7280', fontWeight: '500' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   emptyIconContainer: {
     width: 120,
     height: 120,
@@ -223,19 +193,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#002F34',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 15,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
+  emptyTitle: { fontSize: 22, fontWeight: '700', color: '#002F34', marginBottom: 12, textAlign: 'center' },
+  emptySubtitle: { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 22 },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -245,11 +204,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 24,
   },
-  retryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  retryButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 });
 
 export default SellerRequestListScreen;

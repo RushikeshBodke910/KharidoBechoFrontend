@@ -105,13 +105,15 @@ const BuyerChatListScreen = () => {
   };
 
   // Handle chat request press
-  const handleChatPress = (request: any) => {
-    navigation.navigate('BuyerChatThread' as never, {
-      requestId: request.bookingId || request.requestId,
-      mobileTitle: `Mobile Request #${request.entityId}`,
-      sellerId: request.sellerId,
-    } as never);
-  };
+ const handleChatPress = (request: any) => {
+   navigation.navigate('BuyerChatThread' as never, {
+     requestId: request.bookingId || request.requestId,
+     entityType,        //  pass dynamic entity
+     entityName,        // optional UI text
+     sellerId: request.sellerId,
+   } as never);
+ };
+
 
   // Render filter tabs
   const renderFilterTabs = () => {

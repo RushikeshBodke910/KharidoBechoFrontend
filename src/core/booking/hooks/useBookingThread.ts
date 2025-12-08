@@ -10,6 +10,7 @@ export interface UseBookingThreadOptions {
   enabled?: boolean;
 }
 
+
 export interface UseBookingThreadReturn<TEntity = any> {
   booking: Booking<TEntity> | null;
   loading: boolean;

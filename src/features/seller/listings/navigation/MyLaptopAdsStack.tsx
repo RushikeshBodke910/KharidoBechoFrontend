@@ -6,10 +6,23 @@ import MyLaptopAdsListScreen from '@features/seller/listings/screens/laptop/MyLa
 import LaptopDetailsScreen from '@features/seller/listings/screens/laptop/LaptopDetailsScreen';
 import UpdateLaptopScreen from '@features/seller/listings/screens/laptop/UpdateLaptopScreen';
 
+//  ADD THESE IMPORTS
+import SellerRequestListScreen from '@features/seller/chat/screens/SellerRequestListScreen';
+import SellerChatThreadScreen from '@features/seller/chat/screens/SellerChatThreadScreen';
+
 export type MyLaptopAdsStackParamList = {
   MyLaptopAdsList: undefined;
   LaptopDetails: { laptopId: number };
   UpdateLaptop: { laptopId: number };
+
+  //  ADD TYPE SUPPORT FOR NAVIGATION
+  SellerRequestList: { laptopId: number; laptopTitle?: string };
+  SellerChatThread: {
+    requestId: number;
+    buyerId: number;
+    laptopId?: number;
+    laptopTitle?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<MyLaptopAdsStackParamList>();
@@ -21,10 +34,24 @@ export default function MyLaptopAdsStack() {
         name="MyLaptopAdsList"
         component={MyLaptopAdsListScreen}
       />
+
       <Stack.Screen
         name="LaptopDetails"
         component={LaptopDetailsScreen}
       />
+
+      {/*  Laptop request list */}
+      <Stack.Screen
+        name="SellerRequestList"
+        component={SellerRequestListScreen}
+      />
+
+      {/* Laptop chat thread */}
+      <Stack.Screen
+        name="SellerChatThread"
+        component={SellerChatThreadScreen}
+      />
+
       <Stack.Screen
         name="UpdateLaptop"
         component={UpdateLaptopScreen}
@@ -33,7 +60,7 @@ export default function MyLaptopAdsStack() {
         }}
         listeners={({ navigation }) => ({
           focus: () => {
-            // Go up to the tab navigator (3 levels up)
+            // Hide bottom tab bar when editing laptop
             const tabNavigator = navigation.getParent()?.getParent()?.getParent();
             if (tabNavigator) {
               tabNavigator.setOptions({

@@ -11,7 +11,11 @@ import ListingCardMenu from '../../components/myads/ListingCardMenu';
 import MyAdsListLayout from '../common/MyAdsListLayout';
 import { useMyAdsStatusFilter } from '../../hooks/useMyAdsStatusFilter';
 import { formatINR } from '@shared/utils';
-import { DEFAULT_LISTING_LOCATION, BOTTOM_SHEET_MENU_HEIGHT, getStatusLabel } from '@shared/constants/listing';
+import {
+  DEFAULT_LISTING_LOCATION,
+  BOTTOM_SHEET_MENU_HEIGHT,
+  getStatusLabel,
+} from '@shared/constants/listing';
 
 type NavigationProp = NativeStackNavigationProp<MyLaptopAdsStackParamList>;
 
@@ -26,42 +30,26 @@ const MyLaptopAdsListScreen: React.FC = () => {
   const [selectedLaptop, setSelectedLaptop] = useState<LaptopItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // 🔥 Fix — ensure laptops always passed as array
   const { selectedTab, setSelectedTab, filtered } = useMyAdsStatusFilter({
-    items: laptops,
+    items: laptops || [],
     getStatus: (item) => item.status,
   });
 
+  // Sorting logic (unchanged)
   const sortByNewest = useCallback((items: LaptopItem[]) => {
     return [...items].sort((a, b) => {
       const getTimestamp = (entry: LaptopItem) => {
         const source =
-          (entry as any)?.createdAt ??
-          (entry as any)?.created_at ??
-          (entry as any)?.createdDate ??
+          entry?.createdAt ??
           (entry as any)?.created_on ??
+          (entry as any)?.createdDate ??
           null;
         const parsed = source ? Date.parse(source) : NaN;
-        if (!Number.isNaN(parsed)) {
-          return parsed;
-        }
-        return 0;
+        return Number.isNaN(parsed) ? 0 : parsed;
       };
 
-      const timeA = getTimestamp(a);
-      const timeB = getTimestamp(b);
-
-      if (timeA !== timeB) {
-        return timeB - timeA;
-      }
-
-      const idA = typeof a.id === 'number' ? a.id : Number.NaN;
-      const idB = typeof b.id === 'number' ? b.id : Number.NaN;
-
-      if (!Number.isNaN(idA) && !Number.isNaN(idB) && idA !== idB) {
-        return idB - idA;
-      }
-
-      return 0;
+      return getTimestamp(b) - getTimestamp(a);
     });
   }, []);
 
@@ -125,7 +113,7 @@ const MyLaptopAdsListScreen: React.FC = () => {
               setDeleting(true);
               await deleteLaptop(selectedLaptop.id);
               await fetchData();
-              Alert.alert('Deleted', 'Laptop soft-deleted');
+              Alert.alert('Deleted', 'Laptop deleted');
             } catch (e: any) {
               Alert.alert('Failed', e?.response?.data?.message ?? 'Please try again');
             } finally {
@@ -139,45 +127,57 @@ const MyLaptopAdsListScreen: React.FC = () => {
     );
   }, [selectedLaptop, deleting, closeMenu, fetchData]);
 
-  // Cleanup on unmount
+  // 🔥 NEW — Laptop Chat navigation same as mobile
+  const handleChatPress = useCallback((l: LaptopItem) => {
+    (navigation as any).navigate('SellerRequestList', {
+      laptopId: l.id,
+      laptopTitle: [l.brand, l.model].filter(Boolean).join(' ') || 'Laptop',
+    });
+  }, [navigation]);
+
+  // Cleanup
   useEffect(() => {
     return () => {
-      if (deleting) {
-        setDeleting(false);
-      }
+      if (deleting) setDeleting(false);
     };
   }, [deleting]);
 
   const resolveImage = (item: LaptopItem): ImageSourcePropType => {
     const photo = item.laptopPhotos?.[0];
     const url =
-      (typeof photo?.photo_link === 'string' && photo.photo_link.trim().length > 0
+      typeof photo?.photo_link === 'string'
         ? photo.photo_link
         : typeof (photo as any)?.photoLink === 'string'
         ? (photo as any).photoLink
-        : '') ?? '';
-    if (url) return { uri: url };
-    return require('@assets/icons/laptop.png');
+        : '';
+
+    return url ? { uri: url } : require('@assets/icons/laptop.png');
   };
 
-  const renderCard = useCallback(({ item }: { item: LaptopItem }) => {
-    const titleText =
-      [item.brand, item.model].filter(Boolean).join(' ') || `Laptop #${item.id}`;
-    const subtitleText = [item.processor, item.ram].filter(Boolean).join(' | ');
+  // 🔥 UPDATED CARD — Added Chat button
+  const renderCard = useCallback(
+    ({ item }: { item: LaptopItem }) => {
+      const titleText =
+        [item.brand, item.model].filter(Boolean).join(' ') || `Laptop #${item.id}`;
+      const subtitleText = [item.processor, item.ram].filter(Boolean).join(' | ');
 
-    return (
-      <ListingCard
-        image={resolveImage(item)}
-        priceText={formatINR(item.price || 0)}
-        title={titleText}
-        subtitle={subtitleText}
-        location={DEFAULT_LISTING_LOCATION}
-        badgeText={getStatusLabel(item.status as string)}
-        onPress={() => navigation.navigate('LaptopDetails', { laptopId: item.id })}
-        onMenuPress={() => openMenuFor(item)}
-      />
-    );
-  }, [navigation, openMenuFor]);
+      return (
+        <ListingCard
+          image={resolveImage(item)}
+          priceText={formatINR(item.price || 0)}
+          title={titleText}
+          subtitle={subtitleText}
+          location={DEFAULT_LISTING_LOCATION}
+          badgeText={getStatusLabel(item.status as string)}
+          onPress={() => navigation.navigate('LaptopDetails', { laptopId: item.id })}
+          onMenuPress={() => openMenuFor(item)}
+          onChatPress={() => handleChatPress(item)}   // 🔥 added — opens chat list
+          showChatButton={true}                      // 🔥 add support to UI
+        />
+      );
+    },
+    [navigation, openMenuFor, handleChatPress]
+  );
 
   return (
     <MyAdsListLayout

@@ -128,14 +128,14 @@ export const laptopConfig: EntityConfig<LaptopEntity> = {
   displayNamePlural: 'Laptops',
 
   api: {
-    getAll: '/api/v1/laptops/getAllLaptops',
-    getById: (id: number) => `/api/v1/laptops/${id}`,
+    getAll: '/api/laptops/getAll',
+    getById: (id: number) => `/api/laptops/getById?laptop_id=${id}`,
   },
 
-  idField: 'laptopId',
-  titleField: 'title',
+  idField: 'id',
+  titleField: 'model',
   priceField: 'price',
-  imagesField: 'images',
+  imagesField: 'laptopPhotos',
   descriptionField: 'description',
 
   detailFields: [
@@ -143,14 +143,8 @@ export const laptopConfig: EntityConfig<LaptopEntity> = {
     { key: 'model', label: 'Model', icon: 'information' },
     { key: 'processor', label: 'Processor', icon: 'chip' },
     { key: 'ram', label: 'RAM', icon: 'memory' },
-    { key: 'storage', label: 'Storage', icon: 'harddisk' },
-    { key: 'condition', label: 'Condition', icon: 'star' },
-    {
-      key: 'yearOfPurchase',
-      label: 'Year',
-      icon: 'calendar',
-      format: (value) => value?.toString() || 'N/A',
-    },
+    { key: 'storage', label: 'Storage', icon: 'database' },
+    { key: 'warrantyInYear', label: 'Warranty', icon: 'shield' },
   ],
 
   stackName: 'LaptopStack',
@@ -160,6 +154,7 @@ export const laptopConfig: EntityConfig<LaptopEntity> = {
   icon: 'laptop',
   color: '#7C3AED',
 };
+
 
 // Entity Registry - Central place to access all entity configurations
 export const entityRegistry: Record<string, EntityConfig> = {

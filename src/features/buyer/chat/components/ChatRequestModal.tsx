@@ -1,6 +1,6 @@
 // src/features/buyer/chat/components/ChatRequestModal.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,37 +11,45 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+} from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 interface ChatRequestModalProps {
   visible: boolean;
   onClose: () => void;
-  onSend: (message: string) => Promise<void>;
-  mobileTitle?: string;
+  onSend: (message: string, entityType: "mobile" | "laptop") => Promise<void>;
+  itemTitle?: string;
+  entityType: "mobile" | "laptop";
 }
 
 const ChatRequestModal: React.FC<ChatRequestModalProps> = ({
   visible,
   onClose,
   onSend,
-  mobileTitle = 'this mobile',
+  itemTitle = "this item",
+  entityType,
 }) => {
-  const [message, setMessage] = useState('Hi, is this phone available?');
+  const defaultMessage =
+    entityType === "laptop"
+      ? "Hi, is this laptop available?"
+      : "Hi, is this mobile available?";
+
+  const [message, setMessage] = useState(defaultMessage);
   const [loading, setLoading] = useState(false);
 
-  const handleSend = async () => {
-    if (!message.trim()) {
-      return;
-    }
+  useEffect(() => {
+    if (visible) setMessage(defaultMessage);
+  }, [visible]);
 
+  const handleSend = async () => {
+    if (!message.trim()) return;
     try {
       setLoading(true);
-      await onSend(message.trim());
-      setMessage('Hi, is this phone available?'); // Reset
+      await onSend(message.trim(), entityType);
+      setMessage(defaultMessage);
       onClose();
     } catch (error) {
-      console.error('Failed to send request:', error);
+      console.error("Failed to send request:", error);
     } finally {
       setLoading(false);
     }
@@ -49,7 +57,7 @@ const ChatRequestModal: React.FC<ChatRequestModalProps> = ({
 
   const handleClose = () => {
     if (!loading) {
-      setMessage('Hi, is this phone available?'); // Reset
+      setMessage(defaultMessage);
       onClose();
     }
   };
@@ -63,7 +71,7 @@ const ChatRequestModal: React.FC<ChatRequestModalProps> = ({
       statusBarTranslucent
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.overlay}
       >
         <TouchableOpacity
@@ -75,7 +83,6 @@ const ChatRequestModal: React.FC<ChatRequestModalProps> = ({
 
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerIcon}>
                 <Icon name="message-text" size={24} color="#0F5E87" />
@@ -89,14 +96,12 @@ const ChatRequestModal: React.FC<ChatRequestModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Title */}
             <Text style={styles.title}>Send request to seller</Text>
             <Text style={styles.subtitle}>
-              Your message will be sent to the seller for{' '}
-              <Text style={styles.mobileName}>{mobileTitle}</Text>
+              Your message will be sent to the seller for{" "}
+              <Text style={styles.itemName}>{itemTitle}</Text>
             </Text>
 
-            {/* Input */}
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
@@ -105,7 +110,6 @@ const ChatRequestModal: React.FC<ChatRequestModalProps> = ({
                 placeholder="Type your message..."
                 placeholderTextColor="#9CA3AF"
                 multiline
-                numberOfLines={4}
                 maxLength={500}
                 editable={!loading}
                 autoFocus
@@ -113,7 +117,6 @@ const ChatRequestModal: React.FC<ChatRequestModalProps> = ({
               <Text style={styles.charCount}>{message.length}/500</Text>
             </View>
 
-            {/* Buttons */}
             <View style={styles.buttons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -149,117 +152,64 @@ const ChatRequestModal: React.FC<ChatRequestModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  overlay: { flex: 1, justifyContent: "center", alignItems: "center" },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  modalContainer: {
-    width: '90%',
-    maxWidth: 400,
-  },
+  modalContainer: { width: "90%", maxWidth: 400 },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
     elevation: 10,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
+  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
   headerIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E5F3F5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E5F3F5",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  closeButton: {
-    padding: 4,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  mobileName: {
-    fontWeight: '600',
-    color: '#0F5E87',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
+  closeButton: { padding: 4 },
+  title: { fontSize: 22, fontWeight: "700", color: "#0F172A", marginBottom: 8 },
+  subtitle: { fontSize: 14, color: "#6B7280", marginBottom: 20 },
+  itemName: { fontWeight: "600", color: "#0F5E87" },
+  inputContainer: { marginBottom: 20 },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     padding: 12,
     fontSize: 15,
-    color: '#0F172A',
     minHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
-  charCount: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'right',
-    marginTop: 6,
-  },
-  buttons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  charCount: { fontSize: 12, color: "#9CA3AF", textAlign: "right", marginTop: 6 },
+  buttons: { flexDirection: "row", gap: 12 },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
+    backgroundColor: "#F3F4F6",
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
   },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
+  cancelButtonText: { fontSize: 16, fontWeight: "600", color: "#6B7280" },
   sendButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 14,
+    backgroundColor: "#0F5E87",
     borderRadius: 10,
-    backgroundColor: '#0F5E87',
     gap: 8,
   },
-  sendButtonDisabled: {
-    backgroundColor: '#CBD5E1',
-  },
-  sendButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  sendButtonDisabled: { backgroundColor: "#CBD5E1" },
+  sendButtonText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
 });
 
 export default ChatRequestModal;

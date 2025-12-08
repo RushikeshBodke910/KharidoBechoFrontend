@@ -1,8 +1,3 @@
-/**
- * Catalog API Service
- * Provides type-safe API methods that work with any entity configuration
- */
-
 import apiClient from '@shared/api/client';
 import { EntityConfig, BaseEntity, PageResponse } from '../config/entityTypes';
 
@@ -12,25 +7,36 @@ export interface GetAllParams {
   sort?: string;
 }
 
-/**
- * Generic function to fetch all entities with pagination
- */
 export async function getAllEntities<T extends BaseEntity>(
   config: EntityConfig<T>,
   params?: GetAllParams
 ): Promise<PageResponse<T>> {
   const { page = 0, size = 20, sort = 'createdAt,DESC' } = params || {};
 
-  const response = await apiClient.get<PageResponse<T>>(config.api.getAll, {
+  const response = await apiClient.get(config.api.getAll, {
     params: { page, size, sort },
   });
 
-  return response.data;
+  const data = response.data;
+
+  // CASE 1: If Laptop API returns a simple array
+  if (Array.isArray(data)) {
+    return {
+      content: data,
+      totalPages: 1,
+      totalElements: data.length,
+      number: 0,
+      size: data.length,
+      first: true,
+      last: true,
+      empty: data.length === 0,
+    };
+  }
+
+  // CASE 2: Mobile/Car pageable response
+  return data;
 }
 
-/**
- * Generic function to fetch a single entity by ID
- */
 export async function getEntityById<T extends BaseEntity>(
   config: EntityConfig<T>,
   id: number
@@ -39,9 +45,6 @@ export async function getEntityById<T extends BaseEntity>(
   return response.data;
 }
 
-/**
- * Helper function to extract entity ID from entity object
- */
 export function getEntityId<T extends BaseEntity>(
   entity: T,
   config: EntityConfig<T>
@@ -49,9 +52,6 @@ export function getEntityId<T extends BaseEntity>(
   return entity[config.idField] as number;
 }
 
-/**
- * Helper function to extract entity title
- */
 export function getEntityTitle<T extends BaseEntity>(
   entity: T,
   config: EntityConfig<T>
@@ -59,9 +59,6 @@ export function getEntityTitle<T extends BaseEntity>(
   return entity[config.titleField] as string;
 }
 
-/**
- * Helper function to extract entity price
- */
 export function getEntityPrice<T extends BaseEntity>(
   entity: T,
   config: EntityConfig<T>
@@ -69,36 +66,31 @@ export function getEntityPrice<T extends BaseEntity>(
   return entity[config.priceField] as number;
 }
 
-/**
- * Helper function to extract entity images
- * Normalizes both string[] and object[] formats
- */
 export function getEntityImages<T extends BaseEntity>(
   entity: T,
   config: EntityConfig<T>
 ): Array<{ imageId: number; imageUrl: string }> {
-  const images = (entity[config.imagesField] as any) || [];
 
-  if (!Array.isArray(images) || images.length === 0) {
+  const images = (entity as any)[config.imagesField];
+
+  if (!images || !Array.isArray(images) || images.length === 0) {
     return [];
   }
 
-  // Check if images are strings (URLs) or objects
-  if (typeof images[0] === 'string') {
-    // Convert string array to object array
-    return images.map((url: string, index: number) => ({
-      imageId: index,
-      imageUrl: url,
-    }));
-  }
-
-  // Already in object format
-  return images;
+  return images.map((img: any, index: number) => ({
+    imageId: img.imageId ?? index,
+    imageUrl:
+      img.imageUrl ??
+      img.photo_link ??
+      img.photoUrl ??
+      img.url ??
+      null,
+  }))
+  .filter(i => i.imageUrl); // remove invalid entries
 }
 
-/**
- * Helper function to extract entity description
- */
+
+
 export function getEntityDescription<T extends BaseEntity>(
   entity: T,
   config: EntityConfig<T>

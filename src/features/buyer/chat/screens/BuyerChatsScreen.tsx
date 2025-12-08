@@ -46,14 +46,14 @@ const CHAT_CATEGORIES: ChatCategory[] = [
   //   color: '#EF4444',
   //   enabled: false,
   // },
-  // {
-  //   id: 'laptop',
-  //   name: 'Laptops',
-  //   icon: 'laptop',
-  //   emoji: '💻',
-  //   color: '#8B5CF6',
-  //   enabled: false,
-  // },
+   {
+     id: 'laptop',
+     name: 'Laptops',
+     icon: 'laptop',
+     emoji: '💻',
+     color: '#8B5CF6',
+    enabled: true,
+   },
   // {
   //   id: 'bike',
   //   name: 'Bikes',
