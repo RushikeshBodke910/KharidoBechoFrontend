@@ -17,12 +17,13 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '@context/AuthContext';
 import { useBookingThread, useSendMessage } from '@core/booking/hooks';
 import { createBookingApi } from '@core/booking/api';
-import { MobileEntity, LaptopEntity } from '@core/booking/types/entity.types';   // ✅ Added laptop type
+import { MobileEntity, LaptopEntity } from '@core/booking/types/entity.types';
 import { ConversationMessage } from '@core/booking/types/booking.types';
 import MessageBubble from '../../../buyer/chat/components/MessageBubble';
 import ChatInput from '../../../buyer/chat/components/ChatInput';
 import StatusActionButtons from '../components/StatusActionButtons';
 import { getSellerStatusConfig, isChatDisabled } from '@core/booking/utils';
+import { EntityType } from '@core/booking/types/entity.types';
 
 interface RouteParams {
   requestId: number;
@@ -31,7 +32,6 @@ interface RouteParams {
   mobileId?: number;
   mobileTitle?: string;
 
-  //  Added laptop params
   laptopId?: number;
   laptopTitle?: string;
 }
@@ -46,16 +46,12 @@ const SellerChatThreadScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-
-  //  Detect which entity this chat belongs to
-
+  // Detect entity
   const isLaptop = !!laptopId;
-  const entityType = isLaptop ? 'laptop' : 'mobile';
+  const entityType: EntityType = isLaptop ? 'laptop' : 'mobile';
   const contextId = isLaptop ? laptopId! : mobileId!;
 
-
-  //  Generic booking hook updated (mobile untouched)
-
+  // Booking thread hook (generic)
   const { booking, loading, error, refresh, updateBooking } =
     useBookingThread<MobileEntity | LaptopEntity>({
       entityType,
@@ -64,10 +60,8 @@ const SellerChatThreadScreen = () => {
       enabled: !!contextId,
     });
 
-
-  //  Send Message hook updated safely
-
-  const { sendMessage, sending } = useSendMessage(entityType);
+  // Send message (generic)
+  const { sendMessage, sending } = useSendMessage<MobileEntity | LaptopEntity>(entityType);
 
   const messages = booking?.conversation || [];
 
@@ -77,7 +71,7 @@ const SellerChatThreadScreen = () => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [messages]);
+  }, [messages.length]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -86,22 +80,15 @@ const SellerChatThreadScreen = () => {
   };
 
   const handleSendMessage = async (message: string) => {
-
     if (!userId) {
       Alert.alert('Error', 'You must be logged in to send messages');
       return;
     }
 
     try {
-      console.log('[SELLER_SEND_MESSAGE]', {
-        entityType,
-        requestId,
-        senderUserId: userId,
-        sellerId: booking?.sellerId,
-        buyerId: booking?.buyerId,
-      });
+      console.log('[SELLER_SEND_MESSAGE]', { entityType, requestId, senderUserId: userId });
 
-      // Auto-status change (still mobile first, laptop unaffected)
+      // If PENDING -> auto mark IN_NEGOTIATION (use correct entity API)
       if (booking?.status === 'PENDING') {
         const api = createBookingApi(entityType);
         await api.updateStatus(requestId, 'IN_NEGOTIATION');
@@ -117,9 +104,6 @@ const SellerChatThreadScreen = () => {
 
   const handleStatusUpdated = () => refresh();
 
-  // ================================================================
-  // Header adjusted to support laptop title
-  // ================================================================
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -177,13 +161,13 @@ const SellerChatThreadScreen = () => {
             tintColor="#0F5E87"
           />
         }
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: false })
-        }
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
       />
 
       {booking && (
+        // PASS entityType so StatusActionButtons uses correct endpoints
         <StatusActionButtons
+          entityType={entityType}
           requestId={requestId}
           currentStatus={booking.status}
           onStatusUpdated={handleStatusUpdated}
