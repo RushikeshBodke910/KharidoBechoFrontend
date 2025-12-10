@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@features/*": ["src/features/*"],
+      "@shared/*": ["src/shared/*"],
+      "@assets/*": ["src/assets/*"],
+      "@theme/*": ["src/theme/*"],
+      "@context/*": ["src/context/*"]
+    }
+  },
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "include": [
+    "src",           // your source code folder
+    "src/types"      // if you're using this folder structure
+  ]
+}
