@@ -52,7 +52,13 @@ export interface LaptopEntity extends BaseEntity {
   manufacturer?: string;
   usbPorts?: number;
   status?: string;
-  laptopPhotos?: Array<{ photoId: number; photo_link: string; publicId: string }>;
+ // laptopPhotos?: Array<{ photoId: number; photo_link: string; publicId: string }>;
+ photos?: Array<{
+   photoId: number;
+   photoLink: string;
+   publicId?: string;
+ }>;
+
 }
 
 // Mobile Configuration
@@ -153,7 +159,7 @@ export const laptopConfig: EntityConfig<LaptopEntity> = {
   idField: 'id',
   titleField: 'model',
   priceField: 'price',
-  imagesField: 'laptopPhotos',
+  imagesField: 'photos',
   descriptionField: 'manufacturer',
 
   detailFields: [

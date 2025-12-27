@@ -1,6 +1,6 @@
-// src/api/LaptopsApi/getAllLaptops.ts
 import client from '@shared/api/client';
 import { extractLaptopPhotos, LaptopPhoto } from './photoNormalizer';
+import { loadSession } from '@shared/utils';
 
 export type LaptopStatus =
   | 'ACTIVE'
@@ -13,7 +13,7 @@ export type LaptopStatus =
   | string;
 
 export type LaptopItem = {
-  id: number;                // backend uses "id"
+  id: number;
   serialNumber?: string;
   dealer?: string;
   model?: string;
@@ -40,82 +40,40 @@ export type LaptopItem = {
   deletedAt?: string | null;
 };
 
-// PageResponse type for laptops with pagination
 export type LaptopPageResponse = {
   content: LaptopItem[];
-  pageable?: unknown;
-  totalPages?: number;
-  totalElements?: number;
-  size?: number;
-  number?: number;
-  last?: boolean;
-  first?: boolean;
-  numberOfElements?: number;
-  empty?: boolean;
 };
 
-// Seller-specific fetch with pagination (for MyAds)
-export async function getLaptopsBySeller(params: {
-  sellerId: number;
-  status?: string;
-  page?: number;
-  size?: number;
-  sortBy?: string;
-}): Promise<LaptopPageResponse> {
-  const { sellerId, status = 'ACTIVE', page = 0, size = 20, sortBy = 'id' } = params;
 
-  const res = await client.get<LaptopPageResponse>('/api/laptops/getByDealerIdAndStatus', {
-    params: {
-      sellerId,
-      status,
-      page,
-      size,
-      sortBy,
-    },
-  });
+export async function getAllLaptops(): Promise<LaptopItem[]> {
+  const session = await loadSession();
 
-  const payload = res.data;
-  const content = Array.isArray(payload.content) ? payload.content : [];
+  const sellerId =
+    session?.sellerId ??
+    session?.user?.sellerId ??
+    session?.user?.id;
 
-  const normalizedContent = content.map((item) => {
-    const normalizedPhotos = extractLaptopPhotos(item);
-    return {
-      ...item,
-      laptopPhotos:
-        normalizedPhotos.length > 0 ? normalizedPhotos : item.laptopPhotos ?? [],
-    };
-  });
-
-  return {
-    ...payload,
-    content: normalizedContent,
-  };
-}
-
-// Plain array response (based on your Postman example) - Original function for general use
-export async function getAllLaptops(params?: { sellerId?: number }): Promise<LaptopItem[]> {
-  // If sellerId is provided, use the seller-specific endpoint
-  if (params?.sellerId !== undefined && params.sellerId !== null) {
-    const response = await getLaptopsBySeller({
-      sellerId: params.sellerId,
-      status: 'ACTIVE',
-      page: 0,
-      size: 100, // Get all for backward compatibility
-    });
-    return response.content;
+  if (typeof sellerId !== 'number') {
+    throw new Error('SellerId not found in session');
   }
 
-  // Original behavior for general fetching
-  const res = await client.get<LaptopItem[]>('/api/laptops/getAll');
-  const payload = Array.isArray(res.data) ? res.data : [];
 
-  return payload.map((item) => {
+  const res = await client.get<LaptopPageResponse>(
+    `/api/laptops/getAllBySellerId?sellerId=${sellerId}`
+  );
+
+  const content = Array.isArray(res.data?.content)
+    ? res.data.content
+    : [];
+
+  return content.map((item) => {
     const normalizedPhotos = extractLaptopPhotos(item);
-
     return {
       ...item,
       laptopPhotos:
-        normalizedPhotos.length > 0 ? normalizedPhotos : item.laptopPhotos ?? [],
+        normalizedPhotos.length > 0
+          ? normalizedPhotos
+          : item.laptopPhotos ?? [],
     };
   });
 }

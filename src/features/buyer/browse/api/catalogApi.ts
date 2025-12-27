@@ -118,10 +118,10 @@ export function getEntityImages<T extends BaseEntity>(
   }
 
   // Handle laptopPhotos format { photoId, photo_link }
-  if (images[0].photo_link) {
+  if (images[0].photoLink || images[0].photo_link) {
     return images.map((img: any) => ({
       imageId: img.photoId,
-      imageUrl: img.photo_link,
+      imageUrl: img.photoLink || img.photo_link,
     }));
   }
 
